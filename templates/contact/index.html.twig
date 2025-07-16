@@ -1,0 +1,109 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Contact index{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-center fw-bold text-primary" style="letter-spacing:1px;">Annuaire des contacts</h1>
+
+    <form method="get" class="row g-2 align-items-center mb-4 position-relative" autocomplete="off">
+        <div class="col-auto position-relative" style="min-width:250px;">
+            <input id="search-input" type="text" name="search" value="{{ search|default('') }}" class="form-control" placeholder="Rechercher nom, numéro ou email..." autocomplete="off">
+            <div id="search-suggestions" class="list-group position-absolute w-100 shadow-sm d-none" style="z-index:1000;"></div>
+        </div>
+        <div class="col-auto">
+            <input type="hidden" name="sort" value="{{ sort }}">
+            <button type="submit" class="btn btn-outline-primary">Rechercher</button>
+        </div>
+        <div class="col-auto">
+            <a href="?search={{ search|default('') }}&sort={% if sort == 'ASC' %}DESC{% else %}ASC{% endif %}" class="btn btn-outline-secondary">
+                Trier par nom {% if sort == 'ASC' %}↓{% else %}↑{% endif %}
+            </a>
+        </div>
+        <div class="col-auto ms-auto">
+            <a class="btn btn-success" href="{{ path('app_contact_new') }}">Créer un nouveau contact</a>
+        </div>
+    </form>
+    {% if search is not empty %}
+    <div class="mb-3">
+        <a href="{{ path('app_contact_index') }}" class="btn btn-secondary">Retour à la liste</a>
+    </div>
+    {% endif %}
+
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Contact</th>
+                <th>Nom
+                    <a href="?search={{ search|default('') }}&sort={% if sort == 'ASC' %}DESC{% else %}ASC{% endif %}" class="text-white ms-1" style="text-decoration:none;">
+                        {% if sort == 'ASC' %}↓{% else %}↑{% endif %}
+                    </a>
+                </th>
+                <th>Numéro</th>
+                <th>Email</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for contact in contacts %}
+            <tr>
+                <td>{{ contact.contact }}</td>
+                <td>{{ contact.nom }}</td>
+                <td>{{ contact.numero }}</td>
+                <td>{{ contact.email }}</td>
+                <td>
+                    <a class="btn btn-sm btn-info" href="{{ path('app_contact_show', {'id': contact.id}) }}">Voir</a>
+                    <a class="btn btn-sm btn-warning" href="{{ path('app_contact_edit', {'id': contact.id}) }}">Modifier</a>
+                    <form method="post" action="{{ path('app_contact_delete', {'id': contact.id}) }}" style="display:inline;" onsubmit="return confirm('Voulez-vous vraiment supprimer ce contact ?');">
+                        <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ contact.id) }}">
+                        <button class="btn btn-sm btn-danger">Supprimer</button>
+                    </form>
+                </td>
+            </tr>
+        {% else %}
+            <tr>
+                <td colspan="5" class="text-center">Aucun contact trouvé</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+{% endblock %}
+
+{% block javascripts %}
+{{ parent() }}
+<script>
+const input = document.getElementById('search-input');
+const suggestions = document.getElementById('search-suggestions');
+let debounceTimeout;
+input.addEventListener('input', function() {
+    clearTimeout(debounceTimeout);
+    const query = this.value.trim();
+    if (query.length < 1) {
+        suggestions.classList.add('d-none');
+        suggestions.innerHTML = '';
+        return;
+    }
+    debounceTimeout = setTimeout(() => {
+        fetch('/contact/suggest?q=' + encodeURIComponent(query))
+            .then(r => r.json())
+            .then(data => {
+                if (data.length === 0) {
+                    suggestions.innerHTML = '<div class="list-group-item text-muted">Aucun résultat</div>';
+                } else {
+                    suggestions.innerHTML = data.map(c =>
+                        `<a href="/contact/${c.id}" class="list-group-item list-group-item-action">
+                            <strong>${c.contact}</strong> <span class="text-secondary">(${c.nom})</span><br>
+                            <small>${c.numero} - ${c.email}</small>
+                        </a>`
+                    ).join('');
+                }
+                suggestions.classList.remove('d-none');
+            });
+    }, 200);
+});
+document.addEventListener('click', function(e) {
+    if (!input.contains(e.target) && !suggestions.contains(e.target)) {
+        suggestions.classList.add('d-none');
+    }
+});
+</script>
+{% endblock %}

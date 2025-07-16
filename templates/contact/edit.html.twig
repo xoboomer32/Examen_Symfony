@@ -1,0 +1,14 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Edit Contact{% endblock %}
+
+{% block body %}
+    <h1 class="mb-4 text-center fw-bold text-primary" style="letter-spacing:1px;">Modifier le contact</h1>
+
+    {{ include('contact/_form.html.twig', {'button_label': 'Mettre à jour'}) }}
+
+    <div class="d-flex gap-2 mt-3">
+        <a href="{{ path('app_contact_index') }}" class="btn btn-secondary">Retour à la liste</a>
+        {{ include('contact/_delete_form.html.twig') }}
+    </div>
+{% endblock %}
